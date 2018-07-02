@@ -72,9 +72,40 @@ impl DatabaseHandler {
         }
     }
 
+    pub fn get_products(&self) -> Result<Vec<Product>, Error> {
+        let rows = match self.conn.query(SELECT_PRODUCTS, &[]) {
+            Ok(result) => result,
+            Err(_) => return Err(Error::db("could not select all products"))
+        };
+
+        let mut response: Vec<Product> = Vec::new();
+        for row in rows.iter() {
+            response.push(Product {
+                id: row.get(0),
+                name: row.get(1),
+                price: row.get(2),
+                description: row.get(3),
+                available: row.get(4)
+            });
+        }
+        Ok(response)
+    }
+
     // Insert a product for a given UUID
-    pub fn insert_product_by_id(&self, _id: &String, _product: &Product) -> Result<Vec<Product>, Error> {
-        return Ok(vec![]);
+    pub fn insert_product_by_id(&self, product: &Product) -> Result<Vec<Product>, Error> {
+        if self.conn.execute(
+            INSERT_PRODUCT,
+            &[
+                &product.id,
+                &product.name,
+                &product.price.to_string(),
+                &product.description,
+                &product.available.to_string()
+            ]).is_err() {
+            return Err(Error::db("could not insert product"));
+        }
+
+        self.get_products()
     }
 }
 
