@@ -1,7 +1,59 @@
+use std::io::Read;
 use serde_json;
 use schema::GraphQLHandler;
 use db::DatabaseHandler;
-use schema::GraphQLRequest;
+use rocket::data::{self, FromData, Data};
+use rocket::{Outcome, Request};
+use rocket::http::{Status, ContentType};
+
+/// GraphQLRequest defines the structure of the request that are sent in to the GraphQL endpoint.
+/// Consist of a query or a mutation. Both can not be defined.
+#[derive(Serialize, Deserialize)]
+pub struct GraphQLRequest {
+    pub query: Option<String>,
+    pub mutation: Option<String>
+}
+
+impl GraphQLRequest {
+    /// For a defined GraphQLRequest extract the exact query that has been defined
+    pub fn fetch(&self) -> &Option<String> {
+        match self.query.is_some() {
+            true => &self.query,
+            false => match self.mutation.is_some() {
+                true => &self.mutation,
+                false => &None
+            }
+        }
+    }
+}
+
+// Implementation of the `FromData` trait from Rocket to read as input data the GraphQLRequest
+impl FromData for GraphQLRequest {
+    type Error = String;
+    fn from_data(req: &Request, data: Data) -> data::Outcome<Self, String> {
+        // Data has content type "application/json"
+        if req.content_type() != Some(&ContentType::new("application", "json")) {
+            return Outcome::Forward(data);
+        }
+
+        // Read the data into a String.
+        let mut json = String::new();
+        if let Err(e) = data.open().read_to_string(&mut json) {
+            return Outcome::Failure((Status::InternalServerError, format!("{:?}", e)));
+        }
+
+        // Extract the graphql request from the body
+        let graphql_request: GraphQLRequest;
+        match serde_json::from_str(&json) {
+            Ok(result) => graphql_request = result,
+            Err(e) => {
+                return Outcome::Failure((Status::BadRequest, format!("{:?}", e)));
+            }
+        };
+
+        Outcome::Success(graphql_request)
+    }
+}
 
 /// GraphQL global endpoint
 #[post("/", format = "application/json", data = "<request>")]
