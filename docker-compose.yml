@@ -1,0 +1,28 @@
+version: '2'
+
+services:
+  rustql:
+    image: rustql
+    restart: always
+    container_name: rustql
+    networks:
+      rustql-network:
+        ipv4_address: 172.11.0.2
+
+  rustql-db:
+      image: postgresql-db
+      restart: always
+      container_name: rustql-db
+      networks:
+        rustql-network:
+          ipv4_address: 172.11.0.3
+      volumes:
+        - /var/lib/postgresql/data
+
+networks:
+  rustql-network:
+    driver: bridge
+    ipam:
+     config:
+       - subnet: 172.11.0.0/16
+         gateway: 172.11.0.1
