@@ -8,6 +8,7 @@ use rocket::http::Status;
 use rocket::{Request, State, Outcome};
 use rocket::request::{self, FromRequest};
 
+/// Definition of multiple database query as constants
 const CREATE_DB: &'static str = "CREATE DATABASE rustql";
 const EXISTS_DB: &'static str = "SELECT 1 FROM pg_database WHERE datname = 'rustql'";
 const CREATE_PRODUCTS_TABLE: &'static str = "CREATE TABLE IF NOT EXISTS products (\
@@ -21,15 +22,18 @@ const SELECT_PRODUCT_BY_ID: &'static str = "SELECT * FROM products WHERE id = $1
 const _INSERT_PRODUCT: &'static str = "INSERT INTO products (id, name, price, description, available)\
     VALUES ($1, $2, $3, $4, $5)";
 
+/// DatabaseHandler handles a single connection to the database
 pub struct DatabaseHandler {
     conn: PooledConnection<PostgresConnectionManager>,
 }
 
 impl DatabaseHandler {
+    /// Check if the `rustql` database exists
     fn exists(&self) -> bool {
         self.conn.query(EXISTS_DB, &[]).is_ok()
     }
 
+    /// Create the `rustql` database if it doesn't yet exist
     pub fn create(&self) -> Result<u64, Error> {
         if !self.exists() {
             // create database
@@ -43,13 +47,14 @@ impl DatabaseHandler {
             .map_err(|_| Error::db("cannot create the products table"))
     }
 
+    /// Read a product from the database for the given UUID
     pub fn get_product_by_id(&self, id: &String) -> Result<Product, Error> {
         match self.conn.query(SELECT_PRODUCT_BY_ID, &[id]) {
             Ok(rows) => {
                 if rows.is_empty() {
-                    return Err(Error::logic("multiple products with same id."));
+                    Err(Error::logic("multiple products with same id."))
                 } else if rows.len() > 1 {
-                    return Err(Error::logic("no product with id found"));
+                    Err(Error::logic("no product with id found"))
                 } else {
                     let row = rows.get(0);
                     Ok(
@@ -63,15 +68,18 @@ impl DatabaseHandler {
                     )
                 }
             },
-            Err(_) => return Err(Error::db("could not select product by id."))
+            Err(_) => Err(Error::db("could not select product by id."))
         }
     }
 
+    // Insert a product for a given UUID
     pub fn insert_product_by_id(&self, _id: &String, _product: &Product) -> Result<Vec<Product>, Error> {
         return Ok(vec![]);
     }
 }
 
+/// Implementation of the `FromRequest` rocket trait for the DatabaseHandler struct.
+/// This will allow us to retrieve a connection of the database dynamically for a given request.
 impl<'a, 'r> FromRequest<'a, 'r> for DatabaseHandler {
     type Error = ();
 
@@ -84,11 +92,13 @@ impl<'a, 'r> FromRequest<'a, 'r> for DatabaseHandler {
     }
 }
 
+// Database manages the postgres database pool to retrieve and read connections
 pub struct Database {
     pool: Pool<PostgresConnectionManager>,
 }
 
 impl Database {
+    /// Initialization of the database pool
     pub fn init(db_url: &'static str) -> Database {
         let manager = PostgresConnectionManager::new(
             db_url,
@@ -100,6 +110,7 @@ impl Database {
         }
     }
 
+    /// Get a database handler for a given connection
     pub fn handler(&self) -> Result<DatabaseHandler, Error> {
         match self.pool.get() {
             Ok(conn) => Ok(DatabaseHandler { conn }),
