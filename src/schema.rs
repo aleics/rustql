@@ -1,7 +1,7 @@
 use std::io::Read;
 use uuid::{Uuid, UuidVersion};
 use serde_json;
-use juniper::{self, EmptyMutation, Variables, ExecutionError, Value, GraphQLError};
+use juniper::{self, Variables, ExecutionError, Value, GraphQLError};
 use db::{DatabaseHandler};
 use rocket::data::{self, FromData, Data};
 use rocket::{Outcome, Request};
@@ -111,7 +111,7 @@ graphql_object!(Mutation: DatabaseHandler |&self| {
 });
 
 /// Schema definition for the given query and mutation structure
-type Schema = juniper::RootNode<'static, Query, EmptyMutation<DatabaseHandler>>;
+type Schema = juniper::RootNode<'static, Query, Mutation>;
 
 /// GraphQLHandler handles any request delivered to the endpoint and returns the data by a given
 /// query and a database connection
@@ -122,7 +122,7 @@ impl<'a> GraphQLHandler {
         juniper::execute(
             query,
             None,
-            &Schema::new(Query, EmptyMutation::new()),
+            &Schema::new(Query, Mutation),
             &Variables::new(),
             &conn,
         )
