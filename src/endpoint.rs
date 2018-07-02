@@ -8,23 +8,9 @@ use rocket::http::{Status, ContentType};
 
 /// GraphQLRequest defines the structure of the request that are sent in to the GraphQL endpoint.
 /// Consist of a query or a mutation. Both can not be defined.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct GraphQLRequest {
-    pub query: Option<String>,
-    pub mutation: Option<String>
-}
-
-impl GraphQLRequest {
-    /// For a defined GraphQLRequest extract the exact query that has been defined
-    pub fn fetch(&self) -> &Option<String> {
-        match self.query.is_some() {
-            true => &self.query,
-            false => match self.mutation.is_some() {
-                true => &self.mutation,
-                false => &None
-            }
-        }
-    }
+    pub query: Option<String>
 }
 
 // Implementation of the `FromData` trait from Rocket to read as input data the GraphQLRequest
@@ -58,14 +44,10 @@ impl FromData for GraphQLRequest {
 /// GraphQL global endpoint
 #[post("/", format = "application/json", data = "<request>")]
 fn graphql_handler(request: GraphQLRequest, conn: DatabaseHandler) -> String {
-    // fetch the request query from body
-    let query: &str = match request.fetch() {
-        Some(q) => q,
-        None => ""
-    };
+    let query = request.query.unwrap_or(String::new());
 
     // execute the query against the graphql schema
-    let res = GraphQLHandler::execute(query, conn);
+    let res = GraphQLHandler::execute(&query, conn);
 
     // return response as string
     serde_json::to_string(&res)

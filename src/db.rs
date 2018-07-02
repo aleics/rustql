@@ -93,7 +93,7 @@ impl DatabaseHandler {
     }
 
     // Insert a product for a given UUID
-    pub fn insert_product_by_id(&self, product: &Product) -> Result<Vec<Product>, Error> {
+    pub fn insert_product(&self, product: &Product) -> Result<Vec<Product>, Error> {
         if self.conn.execute(
             INSERT_PRODUCT,
             &[

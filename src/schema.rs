@@ -97,11 +97,9 @@ graphql_object!(Mutation: DatabaseHandler |&self| {
         "0.1"
     }
 
-    field product(&executor, new_product: ProductInput) -> Option<Vec<Product>> {
+    field createProduct(&executor, product: ProductInput) -> Option<Vec<Product>> {
         let mut handler = executor.context();
-        let product = new_product.to_product();
-
-        handler.insert_product_by_id(&product).ok()
+        handler.insert_product(&product.to_product()).ok()
     }
 });
 
