@@ -58,7 +58,7 @@ pub struct NewCountry {
 }
 
 impl NewCountry {
-    fn to_country(&self) -> Country {
+    fn _to_country(&self) -> Country {
         Country {
             full_name: self.full_name.clone(),
             continent: self.continent.clone(),

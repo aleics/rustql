@@ -18,7 +18,7 @@ const CREATE_PRODUCTS_TABLE: &'static str = "CREATE TABLE IF NOT EXISTS products
     available boolean\
 )";
 const SELECT_PRODUCT_BY_ID: &'static str = "SELECT * FROM products WHERE id = $1";
-const INSERT_PRODUCT: &'static str = "INSERT INTO products (id, name, price, description, available)\
+const _INSERT_PRODUCT: &'static str = "INSERT INTO products (id, name, price, description, available)\
     VALUES ($1, $2, $3, $4, $5)";
 
 pub struct DatabaseHandler {
