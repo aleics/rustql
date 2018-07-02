@@ -3,7 +3,7 @@ use juniper::{self, Variables, ExecutionError, Value, GraphQLError};
 use db::{DatabaseHandler};
 
 /// Product schema structure
-#[derive(Clone, GraphQLObject)]
+#[derive(Clone, GraphQLObject, Debug)]
 #[graphql(description="Product structure")]
 pub struct Product {
     pub id: String,
@@ -85,6 +85,17 @@ graphql_object!(Query: DatabaseHandler |&self| {
         let handler = executor.context();
         handler.get_product_by_id(&id).ok()
     }
+
+    field allProducts(&executor) -> Vec<Product> {
+        let handler = executor.context();
+        match handler.get_products() {
+            Err(err) => {
+                println!("{:?}", err);
+                Vec::new()
+            },
+            Ok(result) => result
+        }
+    }
 });
 
 /// Mutation
@@ -97,9 +108,15 @@ graphql_object!(Mutation: DatabaseHandler |&self| {
         "0.1"
     }
 
-    field createProduct(&executor, product: ProductInput) -> Option<Vec<Product>> {
+    field createProduct(&executor, product: ProductInput) -> Vec<Product> {
         let mut handler = executor.context();
-        handler.insert_product(&product.to_product()).ok()
+        match handler.insert_product(&product.to_product()) {
+            Err(err) => {
+                println!("{:?}", err);
+                Vec::new()
+            },
+            Ok(result) => result
+        }
     }
 });
 

@@ -94,7 +94,7 @@ impl DatabaseHandler {
 
     // Insert a product for a given UUID
     pub fn insert_product(&self, product: &Product) -> Result<Vec<Product>, Error> {
-        if self.conn.execute(
+        if let Err(e) = self.conn.execute(
             INSERT_PRODUCT,
             &[
                 &product.id,
@@ -102,8 +102,8 @@ impl DatabaseHandler {
                 &product.price.to_string(),
                 &product.description,
                 &product.available.to_string()
-            ]).is_err() {
-            return Err(Error::db("could not insert product"));
+            ]) {
+            return Err(Error::db(&format!("could not insert product: {:?}", e)));
         }
 
         self.get_products()
