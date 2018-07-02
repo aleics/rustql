@@ -18,8 +18,9 @@ const CREATE_PRODUCTS_TABLE: &'static str = "CREATE TABLE IF NOT EXISTS products
     description varchar(250),\
     available boolean\
 )";
+const SELECT_PRODUCTS: &'static str = "SELECT * FROM products";
 const SELECT_PRODUCT_BY_ID: &'static str = "SELECT * FROM products WHERE id = $1";
-const _INSERT_PRODUCT: &'static str = "INSERT INTO products (id, name, price, description, available)\
+const INSERT_PRODUCT: &'static str = "INSERT INTO products (id, name, price, description, available)\
     VALUES ($1, $2, $3, $4, $5)";
 
 /// DatabaseHandler handles a single connection to the database
