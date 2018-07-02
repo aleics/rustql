@@ -103,7 +103,7 @@ impl Database {
     pub fn handler(&self) -> Result<DatabaseHandler, Error> {
         match self.pool.get() {
             Ok(conn) => Ok(DatabaseHandler { conn }),
-            Err(_error) => Err(Error::db("can retrieve a connection from pool"))
+            Err(_) => Err(Error::db("can not retrieve a connection from pool"))
         }
 
     }
