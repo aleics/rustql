@@ -124,13 +124,13 @@ pub struct GraphQLRequest {
 }
 
 impl GraphQLRequest {
-    pub fn query(&self) -> &Option<String> {
-        if self.query.is_some() {
-            return &self.query;
-        } else if self.mutation.is_some() {
-            return &self.mutation;
-        } else {
-            return &None;
+    pub fn fetch(&self) -> &Option<String> {
+        match self.query.is_some() {
+            true => &self.query,
+            false => match self.mutation.is_some() {
+                true => &self.mutation,
+                false => &None
+            }
         }
     }
 }

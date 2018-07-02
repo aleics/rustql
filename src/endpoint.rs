@@ -5,7 +5,7 @@ use schema::GraphQLRequest;
 
 #[post("/", format = "application/json", data = "<request>")]
 fn graphql_handler(request: GraphQLRequest, conn: DatabaseHandler) -> String {
-    let query: &str = match request.query() {
+    let query: &str = match request.fetch() {
         Some(q) => q,
         None => ""
     };
