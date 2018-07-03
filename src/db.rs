@@ -9,18 +9,17 @@ use rocket::{Request, State, Outcome};
 use rocket::request::{self, FromRequest};
 
 /// Definition of multiple database query as constants
-const CREATE_DB: &'static str = "CREATE DATABASE rustql";
-const EXISTS_DB: &'static str = "SELECT 1 FROM pg_database WHERE datname = 'rustql'";
 const CREATE_PRODUCTS_TABLE: &'static str = "CREATE TABLE IF NOT EXISTS products (\
     id varchar(100) primary key,\
-    name varchar(100),\
-    price decimal,\
+    name varchar(100) NOT NULL,\
+    price double precision NOT NULL,\
     description varchar(250),\
-    available boolean\
-)";
-const SELECT_PRODUCT_BY_ID: &'static str = "SELECT * FROM products WHERE id = $1";
-const _INSERT_PRODUCT: &'static str = "INSERT INTO products (id, name, price, description, available)\
-    VALUES ($1, $2, $3, $4, $5)";
+    available boolean NOT NULL\
+);";
+const SELECT_PRODUCTS: &'static str = "SELECT * FROM products;";
+const SELECT_PRODUCT_BY_ID: &'static str = "SELECT * FROM products WHERE id = $1;";
+const INSERT_PRODUCT: &'static str = "INSERT INTO products (id, name, price, description, available)\
+    VALUES ($1, $2, $3, $4, $5);";
 
 /// DatabaseHandler handles a single connection to the database
 pub struct DatabaseHandler {
@@ -28,21 +27,9 @@ pub struct DatabaseHandler {
 }
 
 impl DatabaseHandler {
-    /// Check if the `rustql` database exists
-    fn exists(&self) -> bool {
-        self.conn.query(EXISTS_DB, &[]).is_ok()
-    }
 
-    /// Create the `rustql` database if it doesn't yet exist
-    pub fn create(&self) -> Result<u64, Error> {
-        if !self.exists() {
-            // create database
-            let result = self.conn.execute(CREATE_DB, &[]);
-            if result.is_err() {
-                return Err(Error::db("cannot create the database"))
-            }
-        }
-
+    /// Create the `products` table in the database if it doesn't yet exist
+    pub fn create_table(&self) -> Result<u64, Error> {
         self.conn.execute(CREATE_PRODUCTS_TABLE, &[])
             .map_err(|_| Error::db("cannot create the products table"))
     }
@@ -72,9 +59,42 @@ impl DatabaseHandler {
         }
     }
 
+    pub fn get_products(&self) -> Result<Vec<Product>, Error> {
+        let rows = match self.conn.query(SELECT_PRODUCTS, &[]) {
+            Ok(result) => result,
+            Err(err) => return Err(
+                Error::db(&format!("could not select all products: {}", err))
+            )
+        };
+
+        let mut response: Vec<Product> = Vec::new();
+        for row in rows.iter() {
+            response.push(Product {
+                id: row.get(0),
+                name: row.get(1),
+                price: row.get(2),
+                description: row.get(3),
+                available: row.get(4)
+            });
+        }
+        Ok(response)
+    }
+
     // Insert a product for a given UUID
-    pub fn insert_product_by_id(&self, _id: &String, _product: &Product) -> Result<Vec<Product>, Error> {
-        return Ok(vec![]);
+    pub fn insert_product(&self, product: &Product) -> Result<Vec<Product>, Error> {
+        if let Err(err) = self.conn.execute(
+            INSERT_PRODUCT,
+            &[
+                &product.id,
+                &product.name,
+                &product.price,
+                &product.description,
+                &product.available
+            ]) {
+            return Err(Error::db(&format!("could not insert product: {:?}\n{}", product, err)));
+        }
+
+        self.get_products()
     }
 }
 
