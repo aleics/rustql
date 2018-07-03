@@ -9,8 +9,6 @@ use rocket::{Request, State, Outcome};
 use rocket::request::{self, FromRequest};
 
 /// Definition of multiple database query as constants
-const CREATE_DB: &'static str = "CREATE DATABASE rustql";
-const EXISTS_DB: &'static str = "SELECT 1 FROM pg_database WHERE datname = 'rustql'";
 const CREATE_PRODUCTS_TABLE: &'static str = "CREATE TABLE IF NOT EXISTS products (\
     id varchar(100) primary key,\
     name varchar(100),\
@@ -29,21 +27,9 @@ pub struct DatabaseHandler {
 }
 
 impl DatabaseHandler {
-    /// Check if the `rustql` database exists
-    fn exists(&self) -> bool {
-        self.conn.query(EXISTS_DB, &[]).is_ok()
-    }
 
-    /// Create the `rustql` database if it doesn't yet exist
-    pub fn create(&self) -> Result<u64, Error> {
-        if !self.exists() {
-            // create database
-            let result = self.conn.execute(CREATE_DB, &[]);
-            if result.is_err() {
-                return Err(Error::db("cannot create the database"))
-            }
-        }
-
+    /// Create the `products` table in the database if it doesn't yet exist
+    pub fn create_table(&self) -> Result<u64, Error> {
         self.conn.execute(CREATE_PRODUCTS_TABLE, &[])
             .map_err(|_| Error::db("cannot create the products table"))
     }
