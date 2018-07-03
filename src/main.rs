@@ -29,7 +29,9 @@ fn main() {
 
     // initialize the database and creates if not available a database instance
     let database = db::Database::init(DB_URL);
-    database.handler().unwrap().create().unwrap();
+    if let Err(err) = database.handler().unwrap().create_table() {
+        println!("Error creating `products` table: {}", err);
+    }
 
     // mount the rocket endpoint with the database instance as state
     rocket::ignite()
