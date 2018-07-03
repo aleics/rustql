@@ -11,15 +11,15 @@ use rocket::request::{self, FromRequest};
 /// Definition of multiple database query as constants
 const CREATE_PRODUCTS_TABLE: &'static str = "CREATE TABLE IF NOT EXISTS products (\
     id varchar(100) primary key,\
-    name varchar(100),\
-    price decimal,\
+    name varchar(100) NOT NULL,\
+    price double precision NOT NULL,\
     description varchar(250),\
-    available boolean\
-)";
-const SELECT_PRODUCTS: &'static str = "SELECT * FROM products";
-const SELECT_PRODUCT_BY_ID: &'static str = "SELECT * FROM products WHERE id = $1";
+    available boolean NOT NULL\
+);";
+const SELECT_PRODUCTS: &'static str = "SELECT * FROM products;";
+const SELECT_PRODUCT_BY_ID: &'static str = "SELECT * FROM products WHERE id = $1;";
 const INSERT_PRODUCT: &'static str = "INSERT INTO products (id, name, price, description, available)\
-    VALUES ($1, $2, $3, $4, $5)";
+    VALUES ($1, $2, $3, $4, $5);";
 
 /// DatabaseHandler handles a single connection to the database
 pub struct DatabaseHandler {
@@ -62,7 +62,9 @@ impl DatabaseHandler {
     pub fn get_products(&self) -> Result<Vec<Product>, Error> {
         let rows = match self.conn.query(SELECT_PRODUCTS, &[]) {
             Ok(result) => result,
-            Err(_) => return Err(Error::db("could not select all products"))
+            Err(err) => return Err(
+                Error::db(&format!("could not select all products: {}", err))
+            )
         };
 
         let mut response: Vec<Product> = Vec::new();
@@ -80,16 +82,16 @@ impl DatabaseHandler {
 
     // Insert a product for a given UUID
     pub fn insert_product(&self, product: &Product) -> Result<Vec<Product>, Error> {
-        if let Err(e) = self.conn.execute(
+        if let Err(err) = self.conn.execute(
             INSERT_PRODUCT,
             &[
                 &product.id,
                 &product.name,
-                &product.price.to_string(),
+                &product.price,
                 &product.description,
-                &product.available.to_string()
+                &product.available
             ]) {
-            return Err(Error::db(&format!("could not insert product: {:?}", e)));
+            return Err(Error::db(&format!("could not insert product: {:?}\n{}", product, err)));
         }
 
         self.get_products()
