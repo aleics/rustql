@@ -24,6 +24,12 @@ mod endpoint;
 /// Postgres database URL
 static DB_URL: &'static str = "postgres://postgres@172.11.0.3";
 
+fn rocket(database: Database) -> Rocket {
+    rocket::ignite()
+        .manage(database)
+        .mount("/api", routes![endpoint::graphql_handler])
+}
+
 fn main() {
     println!("rustql!");
 
@@ -34,8 +40,5 @@ fn main() {
     }
 
     // mount the rocket endpoint with the database instance as state
-    rocket::ignite()
-        .manage(database)
-        .mount("/graphql", routes![endpoint::graphql_handler])
-        .launch();
+    rocket(database).launch();
 }
