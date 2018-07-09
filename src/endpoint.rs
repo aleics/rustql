@@ -42,7 +42,7 @@ impl FromData for GraphQLRequest {
 }
 
 /// GraphQL global endpoint
-#[post("/", format = "application/json", data = "<request>")]
+#[post("/graphql", format = "application/json", data = "<request>")]
 fn graphql_handler(request: GraphQLRequest, conn: DatabaseHandler) -> String {
     let query = request.query.unwrap_or(String::new());
 
