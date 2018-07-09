@@ -9,9 +9,9 @@ extern crate uuid;
 
 #[macro_use] extern crate juniper;
 
-extern crate postgres;
+extern crate diesel;
 extern crate r2d2;
-extern crate r2d2_postgres;
+extern crate r2d2_diesel;
 
 extern crate rocket;
 
@@ -36,7 +36,7 @@ fn main() {
     let db_url = env::var("DB_URL").expect("DB_URL must be set");
 
     // initialize the database and creates if not available a database instance
-    let database = db::Database::init(db_url);
+    let database = db::Database::init(&db_url);
     if let Err(err) = database.handler().unwrap().create_table() {
         println!("Error creating `products` table: {}", err);
     }

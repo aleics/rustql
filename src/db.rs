@@ -1,4 +1,5 @@
-use r2d2_postgres::{TlsMode, PostgresConnectionManager};
+use diesel::{PgConnection, Connection};
+use r2d2_diesel::ConnectionManager;
 use r2d2::{Pool, PooledConnection};
 
 use schema::Product;
@@ -23,14 +24,14 @@ const INSERT_PRODUCT: &'static str = "INSERT INTO products (id, name, price, des
 
 /// DatabaseHandler handles a single connection to the database
 pub struct DatabaseHandler {
-    conn: PooledConnection<PostgresConnectionManager>,
+    conn: PooledConnection<ConnectionManager<PgConnection>>,
 }
 
 impl DatabaseHandler {
 
     /// Create the `products` table in the database if it doesn't yet exist
-    pub fn create_table(&self) -> Result<u64, Error> {
-        self.conn.execute(CREATE_PRODUCTS_TABLE, &[])
+    pub fn create_table(&self) -> Result<usize, Error> {
+        self.conn.execute(CREATE_PRODUCTS_TABLE)
             .map_err(|_| Error::db("cannot create the products table"))
     }
 
@@ -114,19 +115,16 @@ impl<'a, 'r> FromRequest<'a, 'r> for DatabaseHandler {
 
 // Database manages the postgres database pool to retrieve and read connections
 pub struct Database {
-    pool: Pool<PostgresConnectionManager>,
+    pool: Pool<ConnectionManager<PgConnection>>,
 }
 
 impl Database {
     /// Initialization of the database pool
     pub fn init(db_url: &'static str) -> Database {
-        let manager = PostgresConnectionManager::new(
-            db_url,
-            TlsMode::None
-        ).expect("unable to connect with database");
+        let manager = ConnectionManager::<PgConnection>::new(db_url);
 
         Database {
-            pool: Pool::new(manager).expect("unable to generate initial database pool")
+            pool: Pool::builder().build(manager).expect("unable to generate initial database pool")
         }
     }
 
