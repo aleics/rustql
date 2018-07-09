@@ -17,14 +17,12 @@ extern crate rocket;
 
 use db::Database;
 use rocket::Rocket;
+use std::env;
 
 mod db;
 mod error;
 mod endpoint;
 mod schema;
-
-/// Postgres database URL
-static DB_URL: &'static str = "postgres://postgres@172.11.0.3";
 
 fn rocket(database: Database) -> Rocket {
     rocket::ignite()
@@ -35,8 +33,10 @@ fn rocket(database: Database) -> Rocket {
 fn main() {
     println!("rustql!");
 
+    let db_url = env::var("DB_URL").expect("DB_URL must be set");
+
     // initialize the database and creates if not available a database instance
-    let database = db::Database::init(DB_URL);
+    let database = db::Database::init(db_url);
     if let Err(err) = database.handler().unwrap().create_table() {
         println!("Error creating `products` table: {}", err);
     }
