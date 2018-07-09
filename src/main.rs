@@ -9,7 +9,7 @@ extern crate uuid;
 
 #[macro_use] extern crate juniper;
 
-extern crate diesel;
+#[macro_use] extern crate diesel;
 extern crate r2d2;
 extern crate r2d2_diesel;
 
@@ -23,6 +23,8 @@ mod db;
 mod error;
 mod endpoint;
 mod schema;
+mod graphql;
+mod models;
 
 fn rocket(database: Database) -> Rocket {
     rocket::ignite()

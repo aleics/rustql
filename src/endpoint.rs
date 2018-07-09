@@ -1,6 +1,6 @@
 use std::io::Read;
 use serde_json;
-use schema::GraphQLHandler;
+use graphql::GraphQLHandler;
 use db::DatabaseHandler;
 use rocket::data::{self, FromData, Data};
 use rocket::{Outcome, Request};

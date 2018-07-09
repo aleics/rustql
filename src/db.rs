@@ -2,7 +2,7 @@ use diesel::{PgConnection, Connection};
 use r2d2_diesel::ConnectionManager;
 use r2d2::{Pool, PooledConnection};
 
-use schema::Product;
+use models::Product;
 use error::Error;
 
 use rocket::http::Status;
