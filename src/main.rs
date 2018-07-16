@@ -35,14 +35,9 @@ fn rocket(database: Database) -> Rocket {
 fn main() {
     println!("rustql!");
 
+    // read DB_URL environment variable defined in Dockerfile
     let db_url = env::var("DB_URL").expect("DB_URL must be set");
 
-    // initialize the database and creates if not available a database instance
-    let database = db::Database::init(&db_url);
-    if let Err(err) = database.handler().unwrap().create_table() {
-        println!("Error creating `products` table: {}", err);
-    }
-
     // mount the rocket endpoint with the database instance as state
-    rocket(database).launch();
+    rocket(db::Database::init(db_url)).launch();
 }

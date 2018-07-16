@@ -76,7 +76,7 @@ pub struct Database {
 
 impl Database {
     /// Initialization of the database pool
-    pub fn init(db_url: &'static str) -> Database {
+    pub fn init(db_url: String) -> Database {
         let manager = ConnectionManager::<PgConnection>::new(db_url);
 
         Database {
