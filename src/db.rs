@@ -1,4 +1,4 @@
-use diesel::{PgConnection, Connection};
+use diesel::{self, PgConnection, prelude::*};
 use r2d2_diesel::ConnectionManager;
 use r2d2::{Pool, PooledConnection};
 
@@ -9,90 +9,46 @@ use rocket::http::Status;
 use rocket::{Request, State, Outcome};
 use rocket::request::{self, FromRequest};
 
-/// Definition of multiple database query as constants
-const CREATE_PRODUCTS_TABLE: &'static str = "CREATE TABLE IF NOT EXISTS products (\
-    id varchar(100) primary key,\
-    name varchar(100) NOT NULL,\
-    price double precision NOT NULL,\
-    description varchar(250),\
-    available boolean NOT NULL\
-);";
-const SELECT_PRODUCTS: &'static str = "SELECT * FROM products;";
-const SELECT_PRODUCT_BY_ID: &'static str = "SELECT * FROM products WHERE id = $1;";
-const INSERT_PRODUCT: &'static str = "INSERT INTO products (id, name, price, description, available)\
-    VALUES ($1, $2, $3, $4, $5);";
+fn format_error(msg: &'static str, diesel_error: diesel::result::Error) -> Error {
+    Error::db(&format!("{}: {}", msg, diesel_error))
+}
 
 /// DatabaseHandler handles a single connection to the database
 pub struct DatabaseHandler {
-    conn: PooledConnection<ConnectionManager<PgConnection>>,
+    conn: PooledConnection<ConnectionManager<PgConnection>>
 }
 
 impl DatabaseHandler {
 
-    /// Create the `products` table in the database if it doesn't yet exist
-    pub fn create_table(&self) -> Result<usize, Error> {
-        self.conn.execute(CREATE_PRODUCTS_TABLE)
-            .map_err(|_| Error::db("cannot create the products table"))
+    fn conn(&self) -> &PgConnection {
+        &*self.conn
     }
 
     /// Read a product from the database for the given UUID
-    pub fn get_product_by_id(&self, id: &String) -> Result<Product, Error> {
-        match self.conn.query(SELECT_PRODUCT_BY_ID, &[id]) {
-            Ok(rows) => {
-                if rows.is_empty() {
-                    Err(Error::logic("multiple products with same id."))
-                } else if rows.len() > 1 {
-                    Err(Error::logic("no product with id found"))
-                } else {
-                    let row = rows.get(0);
-                    Ok(
-                        Product {
-                            id: row.get(0),
-                            name: row.get(1),
-                            price: row.get(2),
-                            description: row.get(3),
-                            available: row.get(4)
-                        }
-                    )
-                }
-            },
-            Err(_) => Err(Error::db("could not select product by id."))
-        }
+    pub fn get_product_by_id(&self, product_id: &String) -> Result<Product, Error> {
+        use schema::products::dsl::*;
+
+        products.find(product_id).first(self.conn())
+            .map_err(|err: diesel::result::Error| format_error("could not select product by id", err))
     }
 
     pub fn get_products(&self) -> Result<Vec<Product>, Error> {
-        let rows = match self.conn.query(SELECT_PRODUCTS, &[]) {
-            Ok(result) => result,
-            Err(err) => return Err(
-                Error::db(&format!("could not select all products: {}", err))
-            )
-        };
+        use schema::products::dsl::*;
 
-        let mut response: Vec<Product> = Vec::new();
-        for row in rows.iter() {
-            response.push(Product {
-                id: row.get(0),
-                name: row.get(1),
-                price: row.get(2),
-                description: row.get(3),
-                available: row.get(4)
-            });
-        }
-        Ok(response)
+        products
+            .select((id, name, price, description, country))
+            .load::<Product>(self.conn())
+            .map_err(|err: diesel::result::Error| format_error("could not select all products", err))
     }
 
     // Insert a product for a given UUID
     pub fn insert_product(&self, product: &Product) -> Result<Vec<Product>, Error> {
-        if let Err(err) = self.conn.execute(
-            INSERT_PRODUCT,
-            &[
-                &product.id,
-                &product.name,
-                &product.price,
-                &product.description,
-                &product.available
-            ]) {
-            return Err(Error::db(&format!("could not insert product: {:?}\n{}", product, err)));
+        use schema::products::dsl::*;
+
+        if let Err(err) = diesel::insert_into(products)
+            .values(vec![product])
+            .execute(self.conn()) {
+            return Err(format_error("could not insert product", err));
         }
 
         self.get_products()

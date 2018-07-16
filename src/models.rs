@@ -1,14 +1,19 @@
 use uuid::{Uuid, UuidVersion};
+use super::schema::products;
 
 /// Product schema structure
-#[derive(Clone, GraphQLObject, Debug, Queryable)]
+#[derive(
+    Debug, PartialEq, GraphQLObject, Clone, Queryable, Insertable, AsChangeset,
+    QueryableByName
+)]
 #[graphql(description="Product structure")]
+#[table_name = "products"]
 pub struct Product {
     pub id: String,
     pub name: String,
     pub price: f64,
-    pub description: String,
-    pub available: bool,
+    pub description: Option<String>,
+    pub country: Option<String>,
 }
 
 /// Product schema structure for input data (mutations)
@@ -16,14 +21,14 @@ pub struct Product {
 #[graphql(description="Input product structure")]
 pub struct ProductInput {
     name: String,
-    description: String,
+    description: Option<String>,
     price: f64,
-    available: bool,
+    country: Option<String>,
 }
 
 impl ProductInput {
     /// Generate a Product instance with a UUID from an input product
-    fn to_product(&self) -> Product {
+    pub fn to_product(&self) -> Product {
         let uuid = Uuid::new(UuidVersion::Sha1).unwrap().to_string();
 
         Product {
@@ -31,7 +36,7 @@ impl ProductInput {
             name: self.name.clone(),
             price: self.price.clone(),
             description: self.description.clone(),
-            available: self.available.clone()
+            country: self.country.clone()
         }
     }
 }
