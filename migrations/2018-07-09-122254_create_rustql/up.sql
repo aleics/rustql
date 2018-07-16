@@ -9,5 +9,6 @@ CREATE TABLE IF NOT EXISTS products (
     name varchar(100) NOT NULL,
     price double precision NOT NULL,
     description varchar(250),
-    country varchar(10)
+    country varchar(10),
+    FOREIGN KEY (country) REFERENCES countries(short_name)
 );
