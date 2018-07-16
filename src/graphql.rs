@@ -1,5 +1,5 @@
 use juniper::{self, Variables, ExecutionError, Value, GraphQLError};
-use models::{Product, ProductInput};
+use models::{Product, ProductInput, Country, CountryInput};
 use db::{DatabaseHandler};
 
 /// Use the database handler as a context for the graphql
@@ -30,6 +30,22 @@ graphql_object!(Query: DatabaseHandler |&self| {
             Ok(result) => result
         }
     }
+
+    field country(&executor, full_name: String) -> Option<Country> {
+        let handler = executor.context();
+        handler.get_country_by_id(&full_name).ok()
+    }
+
+    field allCountries(&executor) -> Vec<Country> {
+        let handler = executor.context();
+        match handler.get_countries() {
+            Err(err) => {
+                println!("{:?}", err);
+                Vec::new()
+            },
+            Ok(result) => result
+        }
+    }
 });
 
 /// Mutation
@@ -45,6 +61,17 @@ graphql_object!(Mutation: DatabaseHandler |&self| {
     field createProduct(&executor, product: ProductInput) -> Vec<Product> {
         let mut handler = executor.context();
         match handler.insert_product(&product.to_product()) {
+            Err(err) => {
+                println!("{:?}", err);
+                Vec::new()
+            },
+            Ok(result) => result
+        }
+    }
+
+    field createCountry(&executor, country: CountryInput) -> Vec<Country> {
+        let mut handler = executor.context();
+        match handler.insert_country(&country.to_country()) {
             Err(err) => {
                 println!("{:?}", err);
                 Vec::new()
