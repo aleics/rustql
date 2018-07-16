@@ -1,2 +1,2 @@
-DROP TABLE countries;
 DROP TABLE products;
+DROP TABLE countries;

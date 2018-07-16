@@ -2,7 +2,7 @@ use diesel::{self, PgConnection, prelude::*};
 use r2d2_diesel::ConnectionManager;
 use r2d2::{Pool, PooledConnection};
 
-use models::Product;
+use models::{Product, Country};
 use error::Error;
 
 use rocket::http::Status;
@@ -34,6 +34,7 @@ impl DatabaseHandler {
             .map_err(|err: diesel::result::Error| format_error("could not select product by id", err))
     }
 
+    // Read all products
     pub fn get_products(&self) -> Result<Vec<Product>, Error> {
         use schema::products::dsl::*;
 
@@ -43,7 +44,7 @@ impl DatabaseHandler {
             .map_err(|err: diesel::result::Error| format_error("could not select all products", err))
     }
 
-    // Insert a product for a given UUID
+    // Insert a product
     pub fn insert_product(&self, product: &Product) -> Result<Vec<Product>, Error> {
         use schema::products::dsl::*;
 
@@ -54,6 +55,37 @@ impl DatabaseHandler {
         }
 
         self.get_products()
+    }
+
+    // Read country by a country_id (short_name)
+    pub fn get_country_by_id(&self, country_id: &String) -> Result<Country, Error> {
+        use schema::countries::dsl::*;
+
+        countries.find(country_id).first(self.conn())
+            .map_err(|err: diesel::result::Error| format_error("could not select country by id", err))
+    }
+
+    // Read all countries
+    pub fn get_countries(&self) -> Result<Vec<Country>, Error> {
+        use schema::countries::dsl::*;
+
+        countries
+            .select((full_name, continent, short_name))
+            .load::<Country>(self.conn())
+            .map_err(|err: diesel::result::Error| format_error("could not select all countries", err))
+    }
+
+    // Insert a country
+    pub fn insert_country(&self, country: &Country) -> Result<Vec<Country>, Error> {
+        use schema::countries::dsl::*;
+
+        if let Err(err) = diesel::insert_into(countries)
+            .values(vec![country])
+            .execute(self.conn()) {
+            return Err(format_error("could not insert country", err));
+        }
+
+        self.get_countries()
     }
 }
 

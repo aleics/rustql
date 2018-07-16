@@ -1,11 +1,8 @@
 use uuid::{Uuid, UuidVersion};
-use super::schema::products;
+use super::schema::{products, countries};
 
 /// Product schema structure
-#[derive(
-    Debug, PartialEq, GraphQLObject, Clone, Queryable, Insertable, AsChangeset,
-    QueryableByName
-)]
+#[derive(Debug, PartialEq, GraphQLObject, Clone, Queryable, Insertable, AsChangeset)]
 #[graphql(description="Product structure")]
 #[table_name = "products"]
 pub struct Product {
@@ -43,8 +40,9 @@ impl ProductInput {
 
 
 /// Country schema structure
-#[derive(Clone, GraphQLObject, Queryable)]
+#[derive(Debug, PartialEq, GraphQLObject, Clone, Queryable, Insertable, AsChangeset)]
 #[graphql(description="Country structure")]
+#[table_name = "countries"]
 pub struct Country {
     full_name: String,
     continent: String,
@@ -62,7 +60,7 @@ pub struct CountryInput {
 
 impl CountryInput {
     /// Generate a country object from a country input
-    fn _to_country(&self) -> Country {
+    pub fn to_country(&self) -> Country {
         Country {
             full_name: self.full_name.clone(),
             continent: self.continent.clone(),
