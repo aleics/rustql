@@ -9,6 +9,7 @@ use rocket::http::Status;
 use rocket::{Request, State, Outcome};
 use rocket::request::{self, FromRequest};
 
+// format_error transforms a diesel error into a db error with a custom message
 fn format_error(msg: &'static str, diesel_error: diesel::result::Error) -> Error {
     Error::db(&format!("{}: {}", msg, diesel_error))
 }
@@ -20,6 +21,7 @@ pub struct DatabaseHandler {
 
 impl DatabaseHandler {
 
+    // Get a connection from the pooled connection
     fn conn(&self) -> &PgConnection {
         &*self.conn
     }
