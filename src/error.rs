@@ -4,7 +4,6 @@ use std::fmt;
 /// ErrorKind defines the type of errors that are available
 #[derive(Debug)]
 pub enum ErrorKind {
-    LogicError,
     DbError
 }
 
@@ -20,13 +19,6 @@ impl Error {
     pub fn db(msg: &str) -> Error {
         Error {
             kind: ErrorKind::DbError,
-            message: String::from(msg)
-        }
-    }
-    /// Create a logic error variable
-    pub fn logic(msg: &str) -> Error {
-        Error {
-            kind: ErrorKind::LogicError,
             message: String::from(msg)
         }
     }

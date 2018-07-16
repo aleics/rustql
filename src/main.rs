@@ -9,22 +9,22 @@ extern crate uuid;
 
 #[macro_use] extern crate juniper;
 
-extern crate postgres;
+#[macro_use] extern crate diesel;
 extern crate r2d2;
-extern crate r2d2_postgres;
+extern crate r2d2_diesel;
 
 extern crate rocket;
 
 use db::Database;
 use rocket::Rocket;
+use std::env;
 
 mod db;
 mod error;
 mod endpoint;
 mod schema;
-
-/// Postgres database URL
-static DB_URL: &'static str = "postgres://postgres@172.11.0.3";
+mod graphql;
+mod models;
 
 fn rocket(database: Database) -> Rocket {
     rocket::ignite()
@@ -35,12 +35,9 @@ fn rocket(database: Database) -> Rocket {
 fn main() {
     println!("rustql!");
 
-    // initialize the database and creates if not available a database instance
-    let database = db::Database::init(DB_URL);
-    if let Err(err) = database.handler().unwrap().create_table() {
-        println!("Error creating `products` table: {}", err);
-    }
+    // read DB_URL environment variable defined in Dockerfile
+    let db_url = env::var("DB_URL").expect("DB_URL must be set");
 
     // mount the rocket endpoint with the database instance as state
-    rocket(database).launch();
+    rocket(db::Database::init(db_url)).launch();
 }
