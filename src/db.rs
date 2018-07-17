@@ -76,11 +76,11 @@ impl DatabaseHandler {
     }
 
     // Insert a country
-    pub fn insert_country(&self, country: &Country) -> Result<Vec<Country>, Error> {
+    pub fn insert_country(&self, val: &Vec<Country>) -> Result<Vec<Country>, Error> {
         use schema::countries::dsl::*;
 
         if let Err(err) = diesel::insert_into(countries)
-            .values(vec![country])
+            .values(val)
             .execute(self.conn()) {
             return Err(format_error("could not insert country", err));
         }

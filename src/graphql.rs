@@ -69,9 +69,13 @@ graphql_object!(Mutation: DatabaseHandler |&self| {
         }
     }
 
-    field createCountry(&executor, country: CountryInput) -> Vec<Country> {
+    field createCountry(&executor, countries: Vec<CountryInput>) -> Vec<Country> {
         let mut handler = executor.context();
-        match handler.insert_country(&country.to_country()) {
+        let proc_countries: Vec<Country> = countries.iter()
+            .map(|co| co.to_country())
+            .collect();
+
+        match handler.insert_country(&proc_countries) {
             Err(err) => {
                 println!("{:?}", err);
                 Vec::new()
