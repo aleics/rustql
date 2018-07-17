@@ -3,7 +3,11 @@
 A GraphQL endpoint using [Rocket](https://rocket.rs/) and [Diesel](http://diesel.rs/).
 
 ## Create image
+```shell
 sudo docker build -t rustql .
+```
 
 ## Create container
+```shell
 docker-compose up -d
+```
