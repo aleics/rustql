@@ -1,4 +1,5 @@
 use std::io::Read;
+use serde::Serialize;
 use serde_json;
 use graphql::GraphQLHandler;
 use db::DatabaseHandler;
@@ -16,7 +17,8 @@ pub struct GraphQLRequest {
 // Implementation of the `FromData` trait from Rocket to read as input data the GraphQLRequest
 impl FromData for GraphQLRequest {
     type Error = String;
-    fn from_data(req: &Request, data: Data) -> data::Outcome<Self, String> {
+
+    fn from_data(req: &Request, data: Data) -> data::Outcome<Self, Self::Error> {
         // Data has content type "application/json"
         if req.content_type() != Some(&ContentType::new("application", "json")) {
             return Outcome::Forward(data);
@@ -41,15 +43,26 @@ impl FromData for GraphQLRequest {
     }
 }
 
+// Serialize any type into a JSON string
+fn serialize<T: ?Sized>(val: &T) -> String where T: Serialize {
+    serde_json::to_string(val)
+        .unwrap_or(String::new())
+}
+
 /// GraphQL global endpoint
 #[post("/graphql", format = "application/json", data = "<request>")]
 fn graphql_handler(request: GraphQLRequest, conn: DatabaseHandler) -> String {
     let query = request.query.unwrap_or(String::new());
 
     // execute the query against the graphql schema
-    let res = GraphQLHandler::execute(&query, conn);
-
-    // return response as string
-    serde_json::to_string(&res)
-        .unwrap_or(String::new())
+    match GraphQLHandler::execute(&query, conn) {
+        Ok((val, exec_errors)) => {
+            if exec_errors.len() > 0 {
+                serialize(&exec_errors)
+            } else {
+                serialize(&val)
+            }
+        },
+        Err(err) => serialize(&err)
+    }
 }
