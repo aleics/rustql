@@ -58,9 +58,13 @@ graphql_object!(Mutation: DatabaseHandler |&self| {
         "0.1"
     }
 
-    field createProduct(&executor, product: ProductInput) -> Vec<Product> {
+    field createProduct(&executor, products: Vec<ProductInput>) -> Vec<Product> {
         let mut handler = executor.context();
-        match handler.insert_product(&product.to_product()) {
+        let proc_products: Vec<Product> = products.iter()
+            .map(|pr| pr.to_product())
+            .collect();
+
+        match handler.insert_product(&proc_products) {
             Err(err) => {
                 println!("{:?}", err);
                 Vec::new()
