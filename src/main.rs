@@ -1,5 +1,4 @@
-#![feature(plugin)]
-#![plugin(rocket_codegen)]
+#![feature(proc_macro_hygiene, decl_macro)]
 
 extern crate serde;
 extern crate serde_json;
@@ -13,7 +12,7 @@ extern crate uuid;
 extern crate r2d2;
 extern crate r2d2_diesel;
 
-extern crate rocket;
+#[macro_use] extern crate rocket;
 
 use db::Database;
 use rocket::Rocket;
