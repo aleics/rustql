@@ -3,9 +3,10 @@ use serde::Serialize;
 use serde_json;
 use graphql::GraphQLHandler;
 use db::DatabaseHandler;
-use rocket::data::{self, FromData, Data};
-use rocket::{Outcome, Request};
+use rocket::data::{self, FromData, Data, Outcome, Transform};
+use rocket::{Request, Outcome::*};
 use rocket::http::{Status, ContentType};
+use rocket::data::Transformed;
 
 /// GraphQLRequest defines the structure of the request that are sent in to the GraphQL endpoint.
 /// Consist of a query or a mutation. Both can not be defined.
@@ -15,31 +16,33 @@ pub struct GraphQLRequest {
 }
 
 // Implementation of the `FromData` trait from Rocket to read as input data the GraphQLRequest
-impl FromData for GraphQLRequest {
+impl<'a> FromData<'a> for GraphQLRequest {
     type Error = String;
+    type Owned = String;
+    type Borrowed = str;
 
-    fn from_data(req: &Request, data: Data) -> data::Outcome<Self, Self::Error> {
-        // Data has content type "application/json"
-        if req.content_type() != Some(&ContentType::new("application", "json")) {
-            return Outcome::Forward(data);
-        }
-
-        // Read the data into a String.
+    fn transform(_: &Request, data: Data) -> Transform<Outcome<Self::Owned, Self::Error>> {
         let mut json = String::new();
-        if let Err(e) = data.open().read_to_string(&mut json) {
-            return Outcome::Failure((Status::InternalServerError, format!("{:?}", e)));
-        }
-
-        // Extract the graphql request from the body
-        let graphql_request: GraphQLRequest;
-        match serde_json::from_str(&json) {
-            Ok(result) => graphql_request = result,
-            Err(e) => {
-                return Outcome::Failure((Status::BadRequest, format!("{:?}", e)));
-            }
+        let outcome = match data.open().read_to_string(&mut json) {
+            Ok(_) => Success(json),
+            Err(e) => Failure((Status::InternalServerError, format!("{:?}", e)))
         };
 
-        Outcome::Success(graphql_request)
+        Transform::Borrowed(outcome)
+    }
+
+    fn from_data(req: &Request, outcome: Transformed<'a, Self>) -> data::Outcome<Self, Self::Error> {
+        if req.content_type() != Some(&ContentType::new("application", "json")) {
+            return Failure((Status::UnsupportedMediaType, format!("'JSON' only supported.")));
+        }
+
+        let json = outcome.borrowed()?;
+
+        // Extract the graphql request from the body
+        match serde_json::from_str(&json) {
+            Ok(result) => Success(result),
+            Err(e) => Failure((Status::BadRequest, format!("{:?}", e)))
+        }
     }
 }
 
@@ -51,7 +54,7 @@ fn serialize<T: ?Sized>(val: &T) -> String where T: Serialize {
 
 /// GraphQL global endpoint
 #[post("/graphql", format = "application/json", data = "<request>")]
-fn graphql_handler(request: GraphQLRequest, conn: DatabaseHandler) -> String {
+pub fn graphql_handler(request: GraphQLRequest, conn: DatabaseHandler) -> String {
     let query = request.query.unwrap_or(String::new());
 
     // execute the query against the graphql schema
